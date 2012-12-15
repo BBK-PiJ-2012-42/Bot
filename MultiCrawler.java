@@ -73,7 +73,7 @@ public class MultiCrawler implements Runnable {
 		
 	}
 	
-	private synchronized void printVisited() {
+	private void printVisited() {
 		Iterator itr = visitedLinks.iterator();
 		System.out.println("VISITED");
 		while (itr.hasNext()) {
@@ -81,7 +81,7 @@ public class MultiCrawler implements Runnable {
 		}
 	}
 	
-	private synchronized void printEmails() {
+	private void printEmails() {
 		Iterator itr = emails.iterator();
 		System.out.println("EMAILS");
 		while (itr.hasNext()) {
@@ -89,7 +89,7 @@ public class MultiCrawler implements Runnable {
 		}
 	}
 	
-	private synchronized void printLinks() {
+	private void printLinks() {
 		Iterator itr = links.iterator();
 		System.out.println("LINKS");
 		while (itr.hasNext()) {
@@ -129,9 +129,11 @@ public class MultiCrawler implements Runnable {
                 addLinks(pageReader.getLinks());
             }
             if (!emailsPrinted) { //emails printed only once
-                this.printEmails();
+                printEmails();
                 emailsPrinted = true;
-            }            
+            } 
+            
+            
                 
 		
 	}
