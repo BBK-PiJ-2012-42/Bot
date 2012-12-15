@@ -7,6 +7,8 @@ import java.io.InputStreamReader;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.*;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 /*
  * To change this template, choose Tools | Templates
@@ -22,9 +24,10 @@ public class PageReader implements WebPage {
 
     // Not implemented now returns as many links as it can find.
     //private static int maxLinks = 50;
-    private String url;
+    private String urlString;
+    private URL url;
     // Current list of lines from the webpage.
-    private List<String> pageLines = new ArrayList<String>();
+    private List<String> pageLines = new ArrayList<>();
     static private int counter;
     
     
@@ -32,14 +35,23 @@ public class PageReader implements WebPage {
         return counter;
     }
     
-    public PageReader(String url) {
-        this.url = url;
+    public PageReader(String urlString) {
+        this.urlString = urlString;
         counter += 1;
+        // Add http:// to urlString if it doesn't have it.
+        if (urlString.startsWith("www")) {
+            urlString = "http://" + urlString;
+        } 
+        try {
+            url = new URL(urlString);
+        } catch (MalformedURLException ex) {
+            Logger.getLogger(PageReader.class.getName()).log(Level.SEVERE, null, ex);
+        }
     }
             
     @Override
     public String getUrl() {
-        return url;
+        return urlString;
     }
     
     @Override
@@ -48,13 +60,7 @@ public class PageReader implements WebPage {
             pageLines = getPage();
         } 
         Set<String> myLinkSet = new HashSet<String>(getListLinks(pageLines));
-        ///////
         System.out.println();
-        //System.out.println("Gathered emails");
-//        Iterator<String> emailIterator = myLinkSet.iterator();
-//        while (emailIterator.hasNext()) {
-//            System.out.println("Checking:::: " + emailIterator.next());
-//        }
         return myLinkSet;
     }
     
@@ -63,17 +69,18 @@ public class PageReader implements WebPage {
         if (pageLines.isEmpty()) {
             pageLines = getPage();
         } 
-        Set<String> myEmailSet = new HashSet<String>(getListEmails(pageLines));
+        Set<String> myEmailSet = new HashSet<>(getListEmails(pageLines));
         return myEmailSet;
     }
     
     private List<String> getPage() {
         // Get the page and return a nice list of lines
         // for use by the link getter and email getter methods.
-        List<String> lines = new ArrayList<String>();
+        List<String> lines = new ArrayList<>();
         BufferedReader bufferedReader;
         try {
-            bufferedReader = new BufferedReader(new InputStreamReader(new URL(url).openStream()));
+            System.out.println(url.toString());
+            bufferedReader = new BufferedReader(new InputStreamReader(url.openStream()));
             String line;
             do {
                 line = bufferedReader.readLine();
@@ -90,13 +97,14 @@ public class PageReader implements WebPage {
     
     private List<String> getListLinks(List<String> lines) {
         String result;
-        List<String> links = new ArrayList<String>();
+        List<String> links = new ArrayList<>();
         String linkRegex = "href=\"[^>]*\">";
         for(String each : lines) {
             try {
                 Scanner myScanner = new Scanner(each);
                 do {
                     result = myScanner.findInLine(linkRegex);
+                    // Inefficent logical construction.
                     if (result != null) {
                         // Remove the beginning and end href=""
                         result = result.replaceFirst("href=\"", "");
@@ -104,9 +112,16 @@ public class PageReader implements WebPage {
                         // Remove anything left over after a space.
                         result = result.replaceFirst(" .*", "");
                         result = result.replaceFirst("&amp.*", "");
-                        // Still does not append http://domain to the links without it or
-                        // pass over emailto: and javascript: links.
-                        if (result.startsWith("https://") || result.startsWith("http://") || result.startsWith("www.")) {
+                        // appends http://domain to the links that just begin with /
+                        if (result.startsWith("/")) {
+                            //result = "http://" + url.getHost() + result;
+                            result = url.getHost() + result;
+                        }
+                        if (result.startsWith("www")) {
+                            result = "http://" + result;
+                        } 
+                        // When checks complete add the url to links.
+                        if (result.startsWith("https://") || result.startsWith("http://")) {
                             links.add(result);
                             //System.out.println(result);
                         }
@@ -121,7 +136,7 @@ public class PageReader implements WebPage {
     }
     
     private List<String> getListEmails(List<String> lines) {
-        List<String> emails = new ArrayList<String>();
+        List<String> emails = new ArrayList<>();
         String result;
         String mailRegex = "([_A-Za-z0-9-]+)(\\.[_A-Za-z0-9-]+)*@[A-Za-z0-9-]+(\\.[A-Za-z0-9-]+)*(\\.[A-Za-z]{2,})";
         for(String each : lines) {
